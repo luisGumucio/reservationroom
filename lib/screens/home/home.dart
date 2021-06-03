@@ -1,222 +1,72 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:reservationroom/services/auth.dart';
-import 'package:provider/provider.dart';
-import 'package:geocoding/geocoding.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:path/path.dart';
+import 'package:reservationroom/screens/configuration/home_configuration.dart';
+import 'package:reservationroom/screens/hotel_booking/hotel_home_screen.dart';
+import 'package:reservationroom/screens/room/room_form.dart';
+import 'package:reservationroom/utils/app_theme.dart';
 
-class Home extends StatelessWidget {
+class Home extends StatefulWidget {
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(body: UploadingImageToFirebaseStorage()
-        // body: Center(
-        //   child: Column(
-        //     mainAxisAlignment: MainAxisAlignment.center,
-        //     children: [
-        //       // LocationPage(),
-        //       // Text("HOME"),
-        //       // ElevatedButton(
-        //       //   onPressed: () {
-        //       //     context.read<AuthService>().signOut();
-        //       //   },
-        //       //   child: Text("Sign out"),
-        //       // ),
-        //       UploadingImageToFirebaseStorage()
-        //     ],
-        //   ),
-        // ),
-        );
-  }
+  _HomeState createState() => _HomeState();
 }
 
-class LocationPage extends StatefulWidget {
-  @override
-  _LocationPageState createState() => _LocationPageState();
-}
+class _HomeState extends State<Home> {
+  int _selectedIndex = 0;
+  static const TextStyle optionStyle =
+      TextStyle(fontSize: 30, fontWeight: FontWeight.bold);
+  static List<Widget> _widgetOptions = <Widget>[
+    HotelHomeScreen(),
+    Text(
+      'cerca de mi',
+      style: optionStyle,
+    ),
+    RoomFormPage(),
+    HomeConfiguration()
+  ];
 
-class _LocationPageState extends State<LocationPage> {
-  Position _currentPosition;
-  String _currentAddress;
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        children: <Widget>[
-          if (_currentPosition != null)
-            Text(
-                "LAT: ${_currentPosition.latitude}, LNG: ${_currentPosition.longitude}"),
-          Text("simple: " + _currentAddress.toString()),
-          ElevatedButton(
-            child: Text("Get location"),
-            onPressed: () {
-              _getCurrentLocation();
-            },
-          )
-        ],
-      ),
-    );
-  }
-
-  _getCurrentLocation() {
-    Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.best,
-            forceAndroidLocationManager: true)
-        .then((Position position) {
-      setState(() {
-        _currentPosition = position;
-        _getAddressFromLatLng();
-      });
-    }).catchError((e) {
-      print(e);
-    });
-  }
-
-  _getAddressFromLatLng() async {
-    try {
-      List<Placemark> placemarks1 =
-          await placemarkFromCoordinates(52.2165157, 6.9437819);
-      List<Placemark> placemarks = await placemarkFromCoordinates(
-          _currentPosition.latitude, _currentPosition.longitude);
-
-      Placemark place = placemarks[0];
-
-      setState(() {
-        _currentAddress =
-            "${place.street}, ${place.subLocality}, ${place.country}";
-      });
-    } catch (e) {
-      print(e);
-    }
-  }
-}
-
-final Color yellow = Color(0xfffbc31b);
-final Color orange = Color(0xfffb6900);
-
-class UploadingImageToFirebaseStorage extends StatefulWidget {
-  @override
-  _UploadingImageToFirebaseStorageState createState() =>
-      _UploadingImageToFirebaseStorageState();
-}
-
-class _UploadingImageToFirebaseStorageState
-    extends State<UploadingImageToFirebaseStorage> {
-  File _imageFile;
-
-  ///NOTE: Only supported on Android & iOS
-  ///Needs image_picker plugin {https://pub.dev/packages/image_picker}
-  final picker = ImagePicker();
-
-  Future pickImage() async {
-    final pickedFile = await picker.getImage(source: ImageSource.camera);
-
+  void _onItemTapped(int index) {
     setState(() {
-      _imageFile = File(pickedFile.path);
+      _selectedIndex = index;
     });
-  }
-
-  Future uploadImageToFirebase(BuildContext context) async {
-    String fileName = basename(_imageFile.path);
-    var firebaseStorageRef =
-        FirebaseStorage.instance.ref().child('images/$fileName');
-    var uploadTask = firebaseStorageRef.putFile(_imageFile);
-    // var taskSnapshot = await uploadTask.whenComplete(() => );
-    // taskSnapshot.ref.getDownloadURL().then(
-    //       (value) => print("Done: $value"),
-    //     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: <Widget>[
-        Container(
-          height: 360,
-          decoration: BoxDecoration(
-              borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(50.0),
-                  bottomRight: Radius.circular(50.0)),
-              gradient: LinearGradient(
-                  colors: [orange, yellow],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight)),
-        ),
-        Container(
-          margin: const EdgeInsets.only(top: 80),
-          child: Column(
-            children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Center(
-                  child: Text(
-                    "Uploading Image to Firebase Storage",
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontStyle: FontStyle.italic),
-                  ),
-                ),
+    return Theme(
+      data: AppTheme.buildLightTheme(),
+      child: Scaffold(
+          appBar: AppBar(
+            title: const Text('RoomMe'),
+          ),
+          body: Center(
+            child: _widgetOptions.elementAt(_selectedIndex),
+          ),
+          bottomNavigationBar: BottomNavigationBar(
+            items: const <BottomNavigationBarItem>[
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home),
+                label: 'Cuartos',
+                backgroundColor: Colors.grey,
               ),
-              SizedBox(height: 20.0),
-              Expanded(
-                child: Stack(
-                  children: <Widget>[
-                    Container(
-                      height: double.infinity,
-                      margin: const EdgeInsets.only(
-                          left: 30.0, right: 30.0, top: 10.0),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(30.0),
-                        child: _imageFile != null
-                            ? Image.file(_imageFile)
-                            : ElevatedButton(
-                                child: Icon(
-                                  Icons.add_a_photo,
-                                  size: 50,
-                                ),
-                                onPressed: pickImage,
-                              ),
-                      ),
-                    ),
-                  ],
-                ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.map),
+                label: 'Cerca de mi',
+                backgroundColor: Colors.grey,
               ),
-              uploadImageButton(context),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.favorite),
+                label: 'Favoritos',
+                backgroundColor: Colors.grey,
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.settings),
+                label: 'Configuration',
+                backgroundColor: Colors.grey,
+              ),
             ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget uploadImageButton(BuildContext context) {
-    return Container(
-      child: Stack(
-        children: <Widget>[
-          Container(
-            padding:
-                const EdgeInsets.symmetric(vertical: 5.0, horizontal: 16.0),
-            margin: const EdgeInsets.only(
-                top: 30, left: 20.0, right: 20.0, bottom: 20.0),
-            decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [yellow, orange],
-                ),
-                borderRadius: BorderRadius.circular(30.0)),
-            child: ElevatedButton(
-              onPressed: () => uploadImageToFirebase(context),
-              child: Text(
-                "Upload Image",
-                style: TextStyle(fontSize: 20),
-              ),
-            ),
-          ),
-        ],
-      ),
+            currentIndex: _selectedIndex,
+            selectedItemColor: Colors.black,
+            onTap: _onItemTapped,
+          )),
     );
   }
 }
