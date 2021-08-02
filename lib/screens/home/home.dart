@@ -10,6 +10,11 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  @override
+  void initState() {
+    super.initState();
+  }
+
   int _selectedIndex = 0;
   static const TextStyle optionStyle =
       TextStyle(fontSize: 30, fontWeight: FontWeight.bold);
@@ -36,6 +41,7 @@ class _HomeState extends State<Home> {
       child: Scaffold(
           appBar: AppBar(
             title: const Text('RoomMe'),
+            automaticallyImplyLeading: false,
           ),
           body: Center(
             child: _widgetOptions.elementAt(_selectedIndex),

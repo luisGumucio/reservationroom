@@ -1,13 +1,21 @@
 import 'dart:ui';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
+import 'package:reservationroom/services/room_service.dart';
 
 import 'calendar_popup_view.dart';
 import 'filters_screen.dart';
 import 'hotel_app_theme.dart';
 import 'hotel_list_view.dart';
+import 'model/distance.dart';
 import 'model/hotel_list_data.dart';
+import 'dart:math' show cos, sqrt, asin;
+
+import 'order/order_home.dart';
 
 class HotelHomeScreen extends StatefulWidget {
   @override
@@ -19,7 +27,7 @@ class _HotelHomeScreenState extends State<HotelHomeScreen>
   AnimationController animationController;
   List<HotelListData> hotelList = HotelListData.hotelList;
   final ScrollController _scrollController = ScrollController();
-
+  RoomService roomService;
   DateTime startDate = DateTime.now();
   DateTime endDate = DateTime.now().add(const Duration(days: 5));
 
@@ -28,6 +36,7 @@ class _HotelHomeScreenState extends State<HotelHomeScreen>
     animationController = AnimationController(
         duration: const Duration(milliseconds: 1000), vsync: this);
     super.initState();
+    roomService = RoomService();
   }
 
   Future<bool> getData() async {
@@ -88,29 +97,7 @@ class _HotelHomeScreenState extends State<HotelHomeScreen>
                         body: Container(
                           color:
                               HotelAppTheme.buildLightTheme().backgroundColor,
-                          child: ListView.builder(
-                            itemCount: hotelList.length,
-                            padding: const EdgeInsets.only(top: 8),
-                            scrollDirection: Axis.vertical,
-                            itemBuilder: (BuildContext context, int index) {
-                              final int count =
-                                  hotelList.length > 10 ? 10 : hotelList.length;
-                              final Animation<double> animation =
-                                  Tween<double>(begin: 0.0, end: 1.0).animate(
-                                      CurvedAnimation(
-                                          parent: animationController,
-                                          curve: Interval(
-                                              (1 / count) * index, 1.0,
-                                              curve: Curves.fastOutSlowIn)));
-                              animationController.forward();
-                              return HotelListView(
-                                callback: () {},
-                                hotelData: hotelList[index],
-                                animation: animation,
-                                animationController: animationController,
-                              );
-                            },
-                          ),
+                          child: _getAllRoomsWidget(),
                         ),
                       ),
                     )
@@ -491,6 +478,80 @@ class _HotelHomeScreenState extends State<HotelHomeScreen>
     );
   }
 
+  Widget getRoomsUi() {
+    return ListView.builder(
+      itemCount: hotelList.length,
+      padding: const EdgeInsets.only(top: 8),
+      scrollDirection: Axis.vertical,
+      itemBuilder: (BuildContext context, int index) {
+        final int count = hotelList.length > 10 ? 10 : hotelList.length;
+        final Animation<double> animation = Tween<double>(begin: 0.0, end: 1.0)
+            .animate(CurvedAnimation(
+                parent: animationController,
+                curve: Interval((1 / count) * index, 1.0,
+                    curve: Curves.fastOutSlowIn)));
+        animationController.forward();
+        return HotelListView(
+          callback: () {
+            print("hola");
+          },
+          hotelData: hotelList[index],
+          animation: animation,
+          animationController: animationController,
+        );
+      },
+    );
+  }
+
+  FutureBuilder _getAllRoomsWidget() {
+    return FutureBuilder<QuerySnapshot>(
+      future: roomService.getAllRooms(),
+      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+        if (snapshot.hasError) {
+          return Text("Something went wrong");
+        }
+        if (snapshot.hasData) {
+          var documents = snapshot.data.docs;
+          final int count = hotelList.length > 10 ? 10 : hotelList.length;
+          final Animation<double> animation =
+              Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(
+                  parent: animationController,
+                  curve: Interval((1 / count) * 1, 1.0,
+                      curve: Curves.fastOutSlowIn)));
+          animationController.forward();
+          return ListView(
+            children: documents
+                .map((doc) => HotelListView(
+                      callback: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => new OrderHome(doc)));
+                      },
+                      hotelData: new HotelListData(
+                        imagePath: doc.id,
+                        titleTxt: doc['name'],
+                        subTxt: doc['place']['name'],
+                        dist: new Distance(
+                            double.parse(doc['latitude'].toString()),
+                            double.parse(doc['longitude'].toString())),
+                        reviews: 80,
+                        rating: 4.4,
+                        perNight: doc['price'],
+                      ),
+                      animation: animation,
+                      animationController: animationController,
+                    ))
+                .toList(),
+          );
+        }
+        return Center(
+          child: CircularProgressIndicator(),
+        );
+      },
+    );
+  }
+
   void showDemoDialog({BuildContext context}) {
     showDialog<dynamic>(
       context: context,
@@ -542,6 +603,26 @@ class _HotelHomeScreenState extends State<HotelHomeScreen>
         ),
       ),
     );
+  }
+
+  Future<String> getImage(QueryDocumentSnapshot doc) async {
+    var uri = doc.id;
+    var firebaseStorageRef =
+        FirebaseStorage.instance.ref().child('images/rooms/$uri');
+    return await firebaseStorageRef.getDownloadURL().then((value) {
+      return value;
+    });
+    // return new NetworkImage(downloadUrl);
+  }
+
+  String synchFunction(QueryDocumentSnapshot doc) {
+    var result;
+    getImage(doc).then((value) {
+      result = value;
+    }).whenComplete(() => print(
+        result)); // the system call to move to and wait out all async execution
+
+    return result;
   }
 }
 

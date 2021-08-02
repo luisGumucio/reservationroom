@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:reservationroom/models/profile.dart';
 
 class AuthService {
   final FirebaseAuth _firebaseAuth;
@@ -19,13 +20,12 @@ class AuthService {
   /// This is to make it as easy as possible but a better way would be to
   /// use your own custom class that would take the exception and return better
   /// error messages. That way you can throw, return or whatever you prefer with that instead.
-  Future<String> signIn({String email, String password}) async {
+  Future<UserCredential> signIn({String email, String password}) async {
     try {
-      await _firebaseAuth.signInWithEmailAndPassword(
+      return await _firebaseAuth.signInWithEmailAndPassword(
           email: email, password: password);
-      return "Signed in";
     } on FirebaseAuthException catch (e) {
-      return e.message;
+      return null;
     }
   }
 
@@ -42,7 +42,22 @@ class AuthService {
       return e.message;
     }
   }
-  // sign in with email & password
-  // register with email & pass
-  // sign out
+
+  Future<UserCredential> createUser(Profile profile) async {
+    try {
+      return await _firebaseAuth
+          .createUserWithEmailAndPassword(
+              email: profile.email, password: profile.password)
+          .then((value) {
+        return value;
+      });
+    } catch (e) {
+      print(e);
+    }
+    return null;
+  }
+
+  User currentUser() {
+    return _firebaseAuth.currentUser;
+  }
 }

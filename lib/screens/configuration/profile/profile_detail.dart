@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:reservationroom/models/profile.dart';
 import 'package:reservationroom/screens/configuration/profile/profile_image.dart';
 import 'package:reservationroom/utils/app_theme.dart';
 import 'package:reservationroom/utils/constant.dart';
 
 class ProfileDetail extends StatelessWidget {
+  final Profile profile;
+  ProfileDetail(this.profile);
   @override
   Widget build(BuildContext context) {
     Size deviceSize = MediaQuery.of(context).size;
@@ -30,6 +33,7 @@ class ProfileDetail extends StatelessWidget {
                 ProfileImage(
                   height: 60.0,
                   width: 60.0,
+                  profile: profile,
                 ),
                 SizedBox(
                   width: 15.0,
@@ -41,7 +45,7 @@ class ProfileDetail extends StatelessWidget {
                     Row(
                       children: <Widget>[
                         Text(
-                          'Pablo Perez',
+                          profile.name,
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 20.0,
@@ -61,11 +65,11 @@ class ProfileDetail extends StatelessWidget {
               mainAxisSize: MainAxisSize.max,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
-                for (var item in profileItems)
+                for (var item in profile.socialInformation.keys)
                   Column(
                     children: <Widget>[
                       Text(
-                        item['count'],
+                        profile.socialInformation[item].toString(),
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 20.0,
@@ -76,7 +80,7 @@ class ProfileDetail extends StatelessWidget {
                         height: 5.0,
                       ),
                       Text(
-                        item['name'],
+                        item,
                         style: TextStyle(
                           color: Colors.white70,
                           fontSize: 13.0,

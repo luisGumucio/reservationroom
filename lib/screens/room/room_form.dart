@@ -1,25 +1,21 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_picture_uploader/firebase_picture_uploader.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_form_builder/flutter_form_builder.dart';
-import 'package:form_builder_image_picker/form_builder_image_picker.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
 import 'package:reservationroom/models/room.dart';
 import 'package:reservationroom/screens/room/room_list.dart';
+import 'package:reservationroom/services/profile_service.dart';
 import 'package:reservationroom/services/room_service.dart';
 import 'package:reservationroom/utils/app_theme.dart';
-import 'package:progress_indicator_button/progress_button.dart';
 import 'package:reservationroom/utils/custom_alert_dialog.dart';
 import 'package:multiselect_formfield/multiselect_formfield.dart';
-import 'package:reservationroom/utils/loader.dart';
-import 'package:reservationroom/utils/single_image_upload.dart';
+import 'package:provider/provider.dart';
 
 // import 'package:path/path.dart';
 class RoomFormPage extends StatefulWidget {
@@ -33,11 +29,13 @@ class _RoomFormPageState extends State<RoomFormPage> {
   final ubicationController = TextEditingController();
   Room _room;
   RoomService roomService;
+  ProfileService profileService;
   Position _currentPosition;
   List _myActivities;
   File _image;
-  bool _isLoading = false;
-
+  List<File> _images = [];
+  User firebaseUser;
+  Placemark place;
   var dialog = CustomAlertDialog(
       title: "Error",
       message: "Fallo al crear la habitacion, por favor intenten de nuevo.",
@@ -50,8 +48,12 @@ class _RoomFormPageState extends State<RoomFormPage> {
   void initState() {
     super.initState();
     roomService = RoomService();
+    profileService = ProfileService();
     _room = Room();
     _myActivities = [];
+    _images.add(null);
+    _images.add(null);
+    _images.add(null);
   }
 
   @override
@@ -61,6 +63,7 @@ class _RoomFormPageState extends State<RoomFormPage> {
 
   @override
   Widget build(BuildContext context) {
+    firebaseUser = context.watch<User>();
     return Theme(
         data: AppTheme.buildLightTheme(),
         child: Scaffold(
@@ -199,7 +202,9 @@ class _RoomFormPageState extends State<RoomFormPage> {
               ],
             ),
             SizedBox(height: 10.0),
-            getUIImage(),
+            Row(children: [
+              for(int i = 0; i<3; i++) getUIImage(i)
+            ],),
             SizedBox(height: 10.0),
             getMulti(),
             Row(
@@ -217,12 +222,15 @@ class _RoomFormPageState extends State<RoomFormPage> {
 
                       final form = _formKeyState.currentState;
                       if (form.validate()) {
+                       
                         form.save();
                         roomService
-                            .saveRoom(_room, _currentPosition)
+                            .saveRoom(_room, _currentPosition, firebaseUser.uid,
+                                place)
                             .then((value) {
                           // var photo = _formKey.currentState.value['photos'];
-                          uploadImageToFirebase(_image, value.id);
+                          uploadImageToFirebase(value.id);
+                          _updateProfile();
                           scafo.close();
                           form.reset();
                           Navigator.push(
@@ -279,18 +287,21 @@ class _RoomFormPageState extends State<RoomFormPage> {
       List<Placemark> placemarks = await placemarkFromCoordinates(
           _currentPosition.latitude, _currentPosition.longitude);
 
-      Placemark place = placemarks[0];
+      place = placemarks[0];
       return "Pais: ${place.country}, Ciudad: ${place.locality}, ${place.subAdministrativeArea}, ${place.subLocality},  Direccion:${place.street}";
     } catch (e) {
       print(e);
     }
   }
 
-  Future uploadImageToFirebase(File _imageFile, String id) async {
-    String fileName = _imageFile.path;
+  Future uploadImageToFirebase(String id) async {
     var firebaseStorageRef =
-        FirebaseStorage.instance.ref().child('images/$id$fileName');
-    firebaseStorageRef.putFile(_imageFile);
+        FirebaseStorage.instance.ref().child('images/rooms/$id');
+        _images.forEach((element) { 
+          if(element != null) firebaseStorageRef.putFile(element);
+        });
+
+    
     // var taskSnapshot = await uploadTask.whenComplete(() => );
     // taskSnapshot.ref.getDownloadURL().then(
     //       (value) => print("Done: $value"),
@@ -359,18 +370,18 @@ class _RoomFormPageState extends State<RoomFormPage> {
     );
   }
 
-  GestureDetector getUIImage() {
+  GestureDetector getUIImage(int index) {
     return GestureDetector(
       onTap: () {
-        _showPicker(context);
+        _showPicker(context, index);
       },
       child: CircleAvatar(
         radius: 30,
-        child: _image != null
+        child: _images[index] != null
             ? ClipRRect(
                 borderRadius: BorderRadius.circular(50),
                 child: Image.file(
-                  _image,
+                  _images[index],
                   width: 100,
                   height: 100,
                   fit: BoxFit.cover,
@@ -389,7 +400,7 @@ class _RoomFormPageState extends State<RoomFormPage> {
     );
   }
 
-  void _showPicker(context) {
+  void _showPicker(context, int index) {
     showModalBottomSheet(
         context: context,
         builder: (BuildContext bc) {
@@ -401,14 +412,14 @@ class _RoomFormPageState extends State<RoomFormPage> {
                       leading: new Icon(Icons.photo_library),
                       title: new Text('Photo Library'),
                       onTap: () {
-                        _imgFromGallery();
+                        _imgFromGallery(index);
                         Navigator.of(context).pop();
                       }),
                   new ListTile(
                     leading: new Icon(Icons.photo_camera),
                     title: new Text('Camera'),
                     onTap: () {
-                      _imgFromCamera();
+                      _imgFromCamera(index);
                       Navigator.of(context).pop();
                     },
                   ),
@@ -419,7 +430,7 @@ class _RoomFormPageState extends State<RoomFormPage> {
         });
   }
 
-  _imgFromCamera() async {
+  _imgFromCamera(int index) async {
     PickedFile pickedFile = await ImagePicker().getImage(
       source: ImageSource.camera,
       maxWidth: 1800,
@@ -427,12 +438,12 @@ class _RoomFormPageState extends State<RoomFormPage> {
     );
     if (pickedFile != null) {
       setState(() {
-        _image = File(pickedFile.path);
+        _images[index] = File(pickedFile.path);
       });
     }
   }
 
-  _imgFromGallery() async {
+  _imgFromGallery(int index) async {
     PickedFile pickedFile = await ImagePicker().getImage(
       source: ImageSource.gallery,
       maxWidth: 1800,
@@ -440,8 +451,12 @@ class _RoomFormPageState extends State<RoomFormPage> {
     );
     if (pickedFile != null) {
       setState(() {
-        _image = File(pickedFile.path);
+        _images[index]  = File(pickedFile.path);
       });
     }
+  }
+
+  void _updateProfile() {
+    profileService.updateProfile(firebaseUser.uid);
   }
 }

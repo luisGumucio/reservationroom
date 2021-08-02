@@ -1,4 +1,3 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:reservationroom/screens/authenticate/create_account_page.dart';
@@ -50,16 +49,7 @@ class SignInPage extends StatelessWidget {
               TextFormField(
                 decoration: const InputDecoration(
                   labelText: 'Password',
-                  // icon: const Padding(
-                  //   padding: const EdgeInsets.only(top: 15.0),
-                  //   child: const Icon(Icons.lock),
-                  // )
                 ),
-                // validator: (val) =>
-                //     val.length < 6 ? 'Password too short.' : null,
-                // onSaved: (val) => {
-                //   print(val)
-                //   password = val},
                 obscureText: true,
                 controller: passwordController,
               ),
@@ -85,13 +75,7 @@ class SignInPage extends StatelessWidget {
               )),
               ElevatedButton(
                 onPressed: () {
-                  context
-                      .read<AuthService>()
-                      .signIn(
-                        email: emailController.text.trim(),
-                        password: passwordController.text.trim(),
-                      )
-                      .then((value) => print(value));
+                  _authenticate(context);
                 },
                 child: Text("Ingresar"),
               )
@@ -101,28 +85,30 @@ class SignInPage extends StatelessWidget {
       ),
     );
   }
-}
 
-// [
-//                   TextField(
-//                     controller: emailController,
-//                     decoration: InputDecoration(
-//                       labelText: "Email",
-//                     ),
-//                   ),
-//                   TextField(
-//                     controller: passwordController,
-//                     decoration: InputDecoration(
-//                       labelText: "Password",
-//                     ),
-//                   ),
-//                   ElevatedButton(
-//                     onPressed: () {
-//                       context.read<AuthService>().signIn(
-//                             email: emailController.text.trim(),
-//                             password: passwordController.text.trim(),
-//                           );
-//                     },
-//                     child: Text("Sign in"),
-//                   )
-//                 ],
+  void _authenticate(BuildContext context) {
+    SnackBar snackBarinitial =
+        SnackBar(content: Text("Autenticando espere por favor..."));
+    ScaffoldMessenger.of(context).showSnackBar(snackBarinitial);
+    context
+        .read<AuthService>()
+        .signIn(
+          email: emailController.text.trim(),
+          password: passwordController.text.trim(),
+        )
+        .then((value) {
+      if (value == null) {
+        SnackBar snackBar =
+            SnackBar(content: Text("Fallo al ingresar, intente de nuevo."));
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      } else {
+        Navigator.of(context).pushReplacementNamed('/');
+      }
+    }).onError((error, stackTrace) {
+      SnackBar snackBar =
+          SnackBar(content: Text("Fallo al ingresar, intente de nuevo."));
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      return null;
+    });
+  }
+}

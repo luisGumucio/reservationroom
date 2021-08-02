@@ -1,31 +1,12 @@
-// import 'package:flutter/material.dart';
-
-// class SecondRoute extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: Text("Second Route"),
-//       ),
-//       body: Center(
-//         child: ElevatedButton(
-//           onPressed: () {
-//             // Navigate back to first route when tapped.
-//           },
-//           child: Text('Go back!'),
-//         ),
-//       ),
-//     );
-//   }
-// }
-
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:reservationroom/models/room_item.dart';
+import 'package:reservationroom/screens/room/room_home.dart';
 
-import 'package:reservationroom/screens/configuration/profile/profile_menu.dart';
 import 'package:reservationroom/screens/room/room_item_page.dart';
 import 'package:reservationroom/services/room_service.dart';
+import 'package:provider/provider.dart';
 
 class RoomList extends StatefulWidget {
   @override
@@ -34,7 +15,7 @@ class RoomList extends StatefulWidget {
 
 class _RoomListState extends State<RoomList> {
   RoomService roomService;
-
+  User firebaseUser;
   @override
   void initState() {
     super.initState();
@@ -43,9 +24,21 @@ class _RoomListState extends State<RoomList> {
 
   @override
   Widget build(BuildContext context) {
+    firebaseUser = context.watch<User>();
     return Scaffold(
         appBar: AppBar(
           title: Text("Cuartos"),
+          leading: Builder(
+            builder: (BuildContext context) {
+              return IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () {
+                  Navigator.pop(context, RoomHome());
+                },
+                tooltip: MaterialLocalizations.of(context).openAppDrawerTooltip,
+              );
+            },
+          ),
         ),
         body: Padding(
           padding: const EdgeInsets.only(bottom: 20.0),
@@ -58,13 +51,16 @@ class _RoomListState extends State<RoomList> {
 
   FutureBuilder _getAllRoomsWidget() {
     return FutureBuilder<QuerySnapshot>(
-      future: roomService.getAllRooms(),
+      future: roomService.getAllByUserRooms(firebaseUser.uid),
       builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
         if (snapshot.hasError) {
           return Text("Something went wrong");
         }
         if (snapshot.hasData) {
           var documents = snapshot.data.docs;
+          if (documents.isEmpty) {
+            return Center(child: Text("No tienes cuartos registrados."));
+          }
           return ListView(
             children: documents
                 .map((doc) => RoomItemPage(

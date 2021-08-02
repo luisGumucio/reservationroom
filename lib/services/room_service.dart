@@ -1,16 +1,23 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-import 'package:geolocator_platform_interface/src/models/position.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:reservationroom/models/room.dart';
 
 class RoomService {
   final CollectionReference rooms =
       FirebaseFirestore.instance.collection('rooms');
 
-  Future<DocumentReference> saveRoom(
-      Room room, Position currentPosition) async {
+  Future<DocumentReference> saveRoom(Room room, Position currentPosition,
+      String userId, Placemark place) async {
     try {
       final Map<String, dynamic> data = Map<String, dynamic>();
+      final Map<String, dynamic> placeData = Map<String, dynamic>();
+      placeData['country'] = place.country;
+      placeData['area'] = place.administrativeArea;
+      placeData['street'] = place.street;
+      placeData['locality'] = place.locality;
+      placeData['name'] = place.name;
+      placeData['subarea'] = place.subAdministrativeArea;
       data['name'] = room.name;
       data['price'] = room.price;
       data['date'] = room.date;
@@ -19,6 +26,8 @@ class RoomService {
       data['latitude'] = currentPosition.latitude;
       data['description'] = room.description;
       data['ubication'] = room.ubication;
+      data['userId'] = userId;
+      data['place'] = placeData;
       return await rooms.add(data).then((value) {
         print(value.id);
         return value;
@@ -31,5 +40,9 @@ class RoomService {
 
   Future<QuerySnapshot> getAllRooms() {
     return rooms.get();
+  }
+
+  Future<QuerySnapshot> getAllByUserRooms(String uid) async {
+    return await rooms.where("userId", isEqualTo: uid).get();
   }
 }

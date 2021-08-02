@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:reservationroom/screens/authenticate/sign_in_page.dart';
+import 'package:reservationroom/screens/booking/booking_home.dart';
 import 'package:reservationroom/screens/configuration/information/information.dart';
 import 'package:reservationroom/screens/room/room_home.dart';
-import 'package:reservationroom/screens/room/room_list.dart';
 
 //COLORS
 const Color profile_info_background = Color(0xFF3775FD);
@@ -51,7 +51,7 @@ List<FurnitureCatg> furnitureCategoriesList = [
   FurnitureCatg(icon: CustomIcon.chat, elivation: false),
   FurnitureCatg(icon: CustomIcon.money, elivation: false),
 ];
-const userAuth = null;
+
 List<ProfileMenu> profileMenuList = [
   ProfileMenu(
       title: 'Cuartos',
@@ -60,21 +60,20 @@ List<ProfileMenu> profileMenuList = [
       icon: Icons.domain_rounded,
       page: RoomHome()),
   ProfileMenu(
-      title: 'Informacion',
-      subTitle: 'Muestra la informacion personal',
+      title: 'Reservas',
+      subTitle: 'Muestra mis reservas de cuartos',
       iconColor: profile_info_privacy,
-      icon: Icons.lock,
+      icon: Icons.home_repair_service,
       page: EditProfilePage()),
   ProfileMenu(
-      title: 'Notificaciones',
-      subTitle: 'Muestra todas las notifiaciones',
+      title: 'Pedidos',
+      subTitle: 'Muestra todas las cuartos reservados',
       iconColor: profile_info_notification,
-      icon: Icons.notifications,
-      page: RoomList()),
+      icon: Icons.home,
+      page: BookingHome()),
   ProfileMenu(
-      title: userAuth != null ? 'Salir' : 'Ingresar',
-      subTitle:
-          userAuth != null ? 'Salir de la applicacion' : "Ingresar a la aplica",
+      title: 'Salir',
+      subTitle: 'Salir de la applicacion',
       iconColor: profile_info_general,
       icon: Icons.logout,
       page: SignInPage()),

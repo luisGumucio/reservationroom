@@ -9,6 +9,6 @@ class HomeConfiguration extends StatefulWidget {
 class _HomeConfigurationState extends State<HomeConfiguration> {
   @override
   Widget build(BuildContext context) {
-    return Profile();
+    return ProfilePage();
   }
 }

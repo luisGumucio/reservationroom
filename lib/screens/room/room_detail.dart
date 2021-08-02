@@ -223,12 +223,6 @@ class RoomDetail extends StatelessWidget {
 
   Container _getContainer() {
     var image = new Image.network("http://www.gstatic.com/webp/gallery/1.jpg");
-    var container = new Container(
-      child: image,
-      padding: EdgeInsets.only(top: 5.0),
-      width: 200.0,
-      height: 200.0,
-    );
     return Container(
       color: HotelAppTheme.buildLightTheme().backgroundColor,
       padding: EdgeInsets.only(top: 30.0),
@@ -399,18 +393,6 @@ class RoomDetail extends StatelessWidget {
     );
   }
 
-  Text _titleLarge() {
-    return Text(
-      "simple",
-      style: TextStyle(
-        color: Colors.black,
-        fontSize: 40.0,
-        letterSpacing: 2.0,
-        fontWeight: FontWeight.bold,
-      ),
-    );
-  }
-
   Container buildLampsWithSlider() {
     return Container(
       //color: Colors.yellow,
@@ -421,10 +403,6 @@ class RoomDetail extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  TextStyle _style() {
-    return TextStyle(fontWeight: FontWeight.bold);
   }
 
   // final buildLamps = ListView.builder(

@@ -46,6 +46,9 @@ dependencies:
   multiselect_formfield: ^0.1.6
   firebase_picture_uploader: ^1.2.3
   google_sign_in: ^5.0.4
+  carousel_slider: ^4.0.0
+  firebase_messaging: ^10.0.3
+  flutter_local_notifications: ^6.0.0
   # cloud_firestore: ^1.0.7
 
 dev_dependencies:

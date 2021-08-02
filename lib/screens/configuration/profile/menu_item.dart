@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:reservationroom/screens/room/room_list.dart';
+import 'package:reservationroom/services/auth.dart';
 import 'package:reservationroom/utils/constant.dart';
+import 'package:provider/provider.dart';
 
 class MenuItem extends StatelessWidget {
   final ProfileMenu menu;
@@ -8,6 +10,7 @@ class MenuItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Size deviceSize = MediaQuery.of(context).size;
+    final firebaseUser = context.watch<AuthService>();
     return InkWell(
       child: Container(
         height: deviceSize.height * 0.09,
@@ -81,8 +84,13 @@ class MenuItem extends StatelessWidget {
         ),
       ),
       onTap: () {
-        Navigator.push(
-            context, MaterialPageRoute(builder: (context) => menu.page));
+        if (menu.title == 'Salir') {
+          firebaseUser.signOut();
+          Navigator.of(context).pushReplacementNamed('/');
+        } else {
+          Navigator.push(
+              context, MaterialPageRoute(builder: (context) => menu.page));
+        }
       },
     );
   }
